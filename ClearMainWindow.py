@@ -140,7 +140,7 @@ class FramelessTitleBar(QWidget):
 		# self.setPalette(p)
 		self.setMouseTracking(True)
 		self.borderRadius = 3   	
-		self.backgroundColor = QColor(255, 255, 255, 180)
+		self.backgroundColor = QColor(255, 255, 255, 255)
 		self.foregroundColor = QColor(0, 0, 0, 0)
 
 		self.ori_pos = None
@@ -148,10 +148,11 @@ class FramelessTitleBar(QWidget):
 		pixmap = QPixmap("./src/default_icon.png")
 		pixmap = pixmap.scaledToHeight(20)
 		self.title_icon.setPixmap(pixmap)
-		self.title_label     = QLabel("Python")
-		self.minimize_button = Title_button("-", 10, 10 ,5)
-		self.maximize_button = Title_button("[]", 20, 20,10)
-		self.close_button    = Title_button("x", 20, 20,10)
+		self.title_label     = QLabel("Python Frameless Mainwindow")
+		self.menubar         = Title_menubar()
+		self.minimize_button = Title_button("-", 20, 20 ,10, "minimize")
+		self.maximize_button = Title_button("[]", 20, 20,10, "maximize")
+		self.close_button    = Title_button("x", 20, 20,10, "colse")
 		self.setContentsMargins(QMargins(0,0,0,0))
 		self.minimize_button.setContentsMargins(QMargins(0,0,0,0))
 		self.maximize_button.setContentsMargins(QMargins(0,0,0,0))
@@ -160,8 +161,18 @@ class FramelessTitleBar(QWidget):
 		self.maximize_button.clicked.connect(lambda : self.maximize_signal.emit())
 		self.close_button.clicked.connect(   lambda : self.close_signal.emit())
 
-		self.main_layout = HBox(5, self.title_icon, 10, self.title_label ,-1, self.minimize_button, self.maximize_button, self.close_button, 5)
-		self.main_layout.setSpacing(2)
+		self.menubar.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+		self.menubar.addMenu ("text")
+		self.menubar.addMenu ("text")
+		self.menubar.addMenu ("text")
+
+		self.menubar.addMenu ("text")
+
+
+
+		self.main_layout = HBox(5, self.title_icon, 10, self.title_label ,self.menubar, -1, self.minimize_button, self.maximize_button, self.close_button, 5)
+		self.main_layout.setSpacing(5)
 		self.main_layout.setContentsMargins(QMargins(0,0,0,0))
 		self.setLayout(self.main_layout)
 		self.setFixedHeight(25)
@@ -194,6 +205,7 @@ class FramelessTitleBar(QWidget):
 
 
 
+
 	def mousePressEvent(self,event):
 		if event.button() == Qt.LeftButton:
 			self.ori_pos = event.pos()
@@ -212,26 +224,68 @@ class FramelessTitleBar(QWidget):
 	def mouseDoubleClickEvent (self, event):
 		self.maximize_signal.emit()
 
-class Title_button(QPushButton):
-	def __init__(self, text="", w=10, h=10, r=0):
+class Title_menubar(QWidget):
+	def __init__(self):
 		super().__init__()
-		self.setText(text)
+		self.main_layout = QHBoxLayout()
+		self.main_layout.setSpacing(0)
+		self.main_layout.setContentsMargins(QMargins(0,0,0,0))
+		self.setLayout(self.main_layout)
+
+	def addMenu(self, text):
+		menu_button = QPushButton(text)
+		self.main_layout.addWidget(menu_button)
+		return menu_button
+
+
+class Title_button(QPushButton):
+	def __init__(self, text="", w=10, h=10, r=5, button_type = None):
+		super().__init__()
+		self.hovered = False
+		self.button_type = button_type
 		self.setFixedHeight(h)
 		self.setFixedWidth(w)
 		self.borderRadius = r
-		self.backgroundColor = QColor(255, 0, 0, 180)
-		self.foregroundColor = QColor(0, 0, 0, 0)
+		self.hovered_background_color = QColor(200, 200, 200, 100)
+		self.neutral_background_color = QColor(200, 200, 200, 0)
+		self.foregroundColor = QColor(30, 180, 30, 255)
 
 	def paintEvent(self, event):
 		s = self.size()
+		w, h, r = s.height(), s.width(), min(s.height(), s.width())/2
+		ellipse_scale = 0.7
+		symbol_scale  = 0.4
 		qp = QPainter()
 		qp.begin(self)
 		qp.setRenderHint(QPainter.Antialiasing, True)
-		qp.setPen(self.foregroundColor)
-		qp.setBrush(self.backgroundColor)
-		path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius,self.borderRadius,self.borderRadius)
-		qp.drawPath(path)
+		qp.setPen(QPen(QColor(0, 0, 0, 0), 1))
+		qp.setBrush( self.hovered_background_color if self.hovered else self.neutral_background_color)
+		qp.drawEllipse(QRectF((1-ellipse_scale)*r, (1-ellipse_scale)*r, r*2*ellipse_scale, r*2*ellipse_scale))
+		qp.setPen(QPen(QColor(self.foregroundColor), 1.5))
+
+		if self.button_type == "minimize":
+			line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r)), QPointF(r, (0.7 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r))])
+			qp.drawPolyline(line)
+		elif self.button_type == "maximize":
+			line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r)), QPointF(r, (0.5 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r))])
+			qp.drawPolyline(line)
+		else:
+			line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r))])
+			qp.drawPolyline(line)
+			line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r))])
+			qp.drawPolyline(line)
+		
+		# path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius,self.borderRadius,self.borderRadius)
+		# qp.drawPath(path)
+		# qp.drawPolyLine()
 		qp.end()
+
+	def enterEvent(self, event):
+		self.hovered = True
+
+	def leaveEvent(self, event):
+		self.hovered = False
+
 
 class RoundCornerRect(QPainterPath):
 	def __init__(self, w, h, r1, r2, r3, r4):
