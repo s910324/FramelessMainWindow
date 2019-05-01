@@ -1,0 +1,17 @@
+
+QMenuBar{
+	height: 20px;
+}
+
+QMenuBar::item {
+	font: 8pt "Inconsolata";
+	color: #3a3a3a;
+
+}
+
+QMenuBar::item:selected{
+
+	color: #5d5d5d;
+	background-color: #fafafa;
+
+}

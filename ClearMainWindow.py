@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-
+from PyQt5.QtSvg import *
  
 class FramelessMainWindow(QWidget):
 	def __init__(self):
@@ -126,6 +126,7 @@ class FramelessMainWindow(QWidget):
 		recursive_set(self)
 
 class FramelessTitleBar(QWidget):
+	test_signal     = pyqtSignal()
 	minimize_signal = pyqtSignal()
 	maximize_signal = pyqtSignal()
 	close_signal    = pyqtSignal()
@@ -133,7 +134,7 @@ class FramelessTitleBar(QWidget):
 
 	def __init__(self):
 		super().__init__()
-		self.setStyleSheet('QWidget{font: 8pt "Inconsolata";}')
+		self.setStyleSheet('QWidget{font: 8pt "Inconsolata"; color: #3a3a3a}')
 		# self.setAutoFillBackground(True)
 		# p = self.palette()
 		# p.setColor(self.backgroundRole(), Qt.red)
@@ -150,19 +151,20 @@ class FramelessTitleBar(QWidget):
 		self.title_icon.setPixmap(pixmap)
 		self.title_label     = QLabel("Python Frameless Mainwindow")
 		self.menubar         = Title_menubar()
+		self.setstyle_button = Title_button("-", 20, 20 ,10, "minimize")
 		self.minimize_button = Title_button("-", 20, 20 ,10, "minimize")
 		self.maximize_button = Title_button("[]", 20, 20,10, "maximize")
-		self.close_button    = Title_button("x", 20, 20,10, "colse")
+		self.close_button    = Title_button("x", 20, 20,10, "close")
 		self.setContentsMargins(QMargins(0,0,0,0))
 		self.minimize_button.setContentsMargins(QMargins(0,0,0,0))
 		self.maximize_button.setContentsMargins(QMargins(0,0,0,0))
 		self.close_button.setContentsMargins(QMargins(0,0,0,0))
+		self.setstyle_button.clicked.connect(self.menubar.load_stylesheet)
 		self.minimize_button.clicked.connect(lambda : self.minimize_signal.emit())
 		self.maximize_button.clicked.connect(lambda : self.maximize_signal.emit())
 		self.close_button.clicked.connect(   lambda : self.close_signal.emit())
 
 		self.menubar.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding))
-
 		self.menubar.addMenu ("text")
 		self.menubar.addMenu ("text")
 		self.menubar.addMenu ("text")
@@ -171,7 +173,7 @@ class FramelessTitleBar(QWidget):
 
 
 
-		self.main_layout = HBox(5, self.title_icon, 10, self.title_label ,self.menubar, -1, self.minimize_button, self.maximize_button, self.close_button, 5)
+		self.main_layout = HBox(5, self.title_icon, 10, self.title_label ,self.menubar, -1, self.setstyle_button, self.minimize_button, self.maximize_button, self.close_button, 5)
 		self.main_layout.setSpacing(5)
 		self.main_layout.setContentsMargins(QMargins(0,0,0,0))
 		self.setLayout(self.main_layout)
@@ -224,19 +226,30 @@ class FramelessTitleBar(QWidget):
 	def mouseDoubleClickEvent (self, event):
 		self.maximize_signal.emit()
 
-class Title_menubar(QWidget):
+class Title_menubar(QMenuBar):
 	def __init__(self):
 		super().__init__()
-		self.main_layout = QHBoxLayout()
-		self.main_layout.setSpacing(0)
-		self.main_layout.setContentsMargins(QMargins(0,0,0,0))
-		self.setLayout(self.main_layout)
 
-	def addMenu(self, text):
-		menu_button = QPushButton(text)
-		self.main_layout.addWidget(menu_button)
-		return menu_button
+	# 	self.main_layout = QHBoxLayout()
+	# 	self.main_layout.setSpacing(0)
+	# 	self.main_layout.setContentsMargins(QMargins(0,0,0,0))
+	# 	self.setLayout(self.main_layout)
 
+	# def addMenu(self, text):
+		# menu_button = QPushButton(text)
+		# self.main_layout.addWidget(menu_button)
+		# return menu_button
+	def load_stylesheet(self):
+		f = QFile("./style.qss")
+		if not f.exists():
+			return ""
+		else:
+			f.open(QFile.ReadOnly | QFile.Text)
+			ts = QTextStream(f)
+			stylesheet = ts.readAll()
+			print("set")
+			self.setStyleSheet(stylesheet)
+	
 
 class Title_button(QPushButton):
 	def __init__(self, text="", w=10, h=10, r=5, button_type = None):
@@ -249,42 +262,71 @@ class Title_button(QPushButton):
 		self.hovered_background_color = QColor(200, 200, 200, 100)
 		self.neutral_background_color = QColor(200, 200, 200, 0)
 		self.foregroundColor = QColor(30, 180, 30, 255)
-
-	def paintEvent(self, event):
-		s = self.size()
-		w, h, r = s.height(), s.width(), min(s.height(), s.width())/2
-		ellipse_scale = 0.7
-		symbol_scale  = 0.4
-		qp = QPainter()
-		qp.begin(self)
-		qp.setRenderHint(QPainter.Antialiasing, True)
-		qp.setPen(QPen(QColor(0, 0, 0, 0), 1))
-		qp.setBrush( self.hovered_background_color if self.hovered else self.neutral_background_color)
-		qp.drawEllipse(QRectF((1-ellipse_scale)*r, (1-ellipse_scale)*r, r*2*ellipse_scale, r*2*ellipse_scale))
-		qp.setPen(QPen(QColor(self.foregroundColor), 1.5))
-
-		if self.button_type == "minimize":
-			line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r)), QPointF(r, (0.7 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r))])
-			qp.drawPolyline(line)
-		elif self.button_type == "maximize":
-			line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r)), QPointF(r, (0.5 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r))])
-			qp.drawPolyline(line)
-		else:
-			line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r))])
-			qp.drawPolyline(line)
-			line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r))])
-			qp.drawPolyline(line)
 		
-		# path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius,self.borderRadius,self.borderRadius)
-		# qp.drawPath(path)
-		# qp.drawPolyLine()
-		qp.end()
+		self.setStyleSheet("""
+		QPushButton{
+			font: 8pt "Inconsolata";
+			background-color: rgba(200, 200, 200, 0%);
+			border-style: solid 0px; 
+			border-radius: 8px; margin: 2px;
+		}
+		QPushButton:Hover{
+			font: 8pt "Inconsolata";
+			background-color: rgba(200, 200, 200, 20%);
+			border-style: solid 0px; 
+			border-radius: 8px; margin: 2px;
+		}""")
+		
+		svg = {"minimize": "D:/Code Data/ClearMaindow/src/drawing-2.svg", "maximize": "D:/Code Data/ClearMaindow/src/drawing-3.svg", "close": "D:/Code Data/ClearMaindow/src/drawing-4.svg", }
+		self.svg = open(svg[self.button_type], 'r').read().replace("#000000", "#555555")
+		
+		self.render_svg(self.svg)
 
 	def enterEvent(self, event):
-		self.hovered = True
+
+		self.render_svg(self.svg.replace("#555555", "#009900"))
 
 	def leaveEvent(self, event):
-		self.hovered = False
+		self.render_svg(self.svg)
+
+	def render_svg(self, svg_stream):
+		renderer = QSvgRenderer(QXmlStreamReader(svg_stream))
+		image = QImage(32, 32, QImage.Format_ARGB32)
+		image.fill(0x00000000)
+		renderer.render(QPainter(image))
+		pixmap = QPixmap.fromImage(image)
+		icon = QIcon(pixmap)
+		self.setIcon(icon)
+	# def paintEvent(self, event):
+	# 	s = self.size()
+	# 	w, h, r = s.height(), s.width(), min(s.height(), s.width())/2
+	# 	ellipse_scale = 0.7
+	# 	symbol_scale  = 0.4
+	# 	qp = QPainter()
+	# 	qp.begin(self)
+	# 	qp.setRenderHint(QPainter.Antialiasing, True)
+	# 	# qp.setPen(QPen(QColor(0, 0, 0, 0), 1))
+	# 	# qp.setBrush( self.hovered_background_color if self.hovered else self.neutral_background_color)
+	# 	# qp.drawEllipse(QRectF((1-ellipse_scale)*r, (1-ellipse_scale)*r, r*2*ellipse_scale, r*2*ellipse_scale))
+	# 	qp.setPen(QPen(QColor(self.foregroundColor), 1.5))
+
+	# 	if self.button_type == "minimize":
+	# 		line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r)), QPointF(r, (0.7 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r))])
+	# 		qp.drawPolyline(line)
+	# 	elif self.button_type == "maximize":
+	# 		line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r)), QPointF(r, (0.5 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r))])
+	# 		qp.drawPolyline(line)
+	# 	else:
+	# 		line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r))])
+	# 		qp.drawPolyline(line)
+	# 		line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r))])
+	# 		qp.drawPolyline(line)
+		
+	# 	# path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius,self.borderRadius,self.borderRadius)
+	# 	# qp.drawPath(path)
+	# 	# qp.drawPolyLine()
+	# 	qp.end()
+
 
 
 class RoundCornerRect(QPainterPath):
