@@ -27,8 +27,12 @@ class FramelessMainWindow(QWidget):
 		self.main_title_bar.maximize_signal.connect(lambda : self.showNormal() if self.isMaximized() else self.showMaximized())
 		self.main_title_bar.close_signal.connect(self.close)
 		self.main_title_bar.move_signal.connect(lambda pos : None if self.isMaximized() else self.move(pos) )
-		self.main_title_bar.aero_resize_signal.connect(lambda screen = QDesktopWidget().screenGeometry() : self.setGeometry(0, 0, screen.width()/2, screen.height()))
+		self.main_title_bar.aero_resize_signal.connect(self.a)
 	
+	def a(self, x, y, w, h):
+		screen = QDesktopWidget().screenGeometry() 
+		self.move(x, y)
+		self.resize(w, h)
 
 	def init_frameless(self):
 		self.edge_sense_dist  = 3
@@ -39,6 +43,7 @@ class FramelessMainWindow(QWidget):
 
 
 	def showMaximized(self):
+		print("mmmm")
 		QWidget.show(self)
 		QWidget.showMaximized(self)
 
@@ -134,9 +139,10 @@ class FramelessTitleBar(QWidget):
 	maximize_signal    = pyqtSignal()
 	close_signal       = pyqtSignal()
 	move_signal        = pyqtSignal(QPoint)
-	aero_resize_signal = pyqtSignal()
+	aero_resize_signal = pyqtSignal(int, int, int, int)
 	def __init__(self):
 		super().__init__()
+		self.aero_resize_tmp = []
 		self.aero_snap_triggered = False
 		self.setStyleSheet('QWidget{font: 8pt "Inconsolata"; color: #3a3a3a}')
 		# self.setAutoFillBackground(True)
@@ -224,7 +230,7 @@ class FramelessTitleBar(QWidget):
 		if event.button() == Qt.LeftButton:
 			self.ori_pos = None
 			if self.aero_snap_triggered == True:
-				self.aero_resize_signal.emit()
+				self.aero_resize_signal.emit(*self.aero_resize_tmp)
 
 			if self.aero_snap_window.isVisible():
 				self.aero_snap_triggered = False
@@ -236,10 +242,21 @@ class FramelessTitleBar(QWidget):
 		if self.ori_pos:
 			self.move_signal.emit(event.globalPos()-self.ori_pos)
 
-			if event.globalPos().x()==0:
-				print("a")
+			screen_res    = QDesktopWidget().screenGeometry()
+			screen_width  = screen_res.width()
+			screen_height = screen_res.height()
+			cursor_x      = event.globalPos().x()
+			cursor_y      = event.globalPos().y()
+
+			if  cursor_x == 0:
 				self.aero_snap_triggered = True
-				self.aero_snap_window.show()
+				self.aero_snap_window.show_at(1, 1, screen_width/2, screen_height)
+				self.aero_resize_tmp = [1, 1, screen_width/2, screen_height]
+			elif (screen_width - cursor_x ) < 10:
+				self.aero_snap_triggered = True
+				self.aero_snap_window.show_at(screen_width/2, 1, screen_width/2, screen_height)
+				self.aero_resize_tmp = [screen_width/2, 1, screen_width/2, screen_height]
+
 			else:
 				if self.aero_snap_window.isVisible():
 					self.aero_snap_triggered = False
@@ -249,6 +266,7 @@ class FramelessTitleBar(QWidget):
 
 	def mouseDoubleClickEvent (self, event):
 		self.maximize_signal.emit()
+		print("nnn")
 
 class Title_menubar(QMenuBar):
 	def __init__(self):
@@ -280,8 +298,8 @@ class Aero_snap_indicator(QWidget):
 		super().__init__()
 		self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
 		self.setAttribute(Qt.WA_TranslucentBackground, True)
-		self.backgroundColor = QColor(255, 255, 255, 20)
-		self.foregroundColor = QColor(20, 20, 20, 20)
+		self.backgroundColor = QColor(180, 180, 180, 50)
+		self.foregroundColor = QColor(20, 20, 20, 0)
 		self.borderRadius    = 5
 
 	def show(self):
@@ -289,6 +307,12 @@ class Aero_snap_indicator(QWidget):
 		screen_resolution = QDesktopWidget().screenGeometry()
 		width, height = screen_resolution.width(), screen_resolution.height()
 		self.setGeometry(0, 0, width/2, height)
+
+	def show_at(self, x, y, w, h):
+		self.setGeometry(x, y, w, h)
+		QWidget.show(self)
+
+
 
 	def paintEvent(self, event):
 		s = self.size()
