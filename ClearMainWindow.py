@@ -27,6 +27,7 @@ class FramelessMainWindow(QWidget):
 		self.main_title_bar.maximize_signal.connect(lambda : self.showNormal() if self.isMaximized() else self.showMaximized())
 		self.main_title_bar.close_signal.connect(self.close)
 		self.main_title_bar.move_signal.connect(lambda pos : None if self.isMaximized() else self.move(pos) )
+		self.main_title_bar.aero_resize_signal.connect(lambda screen = QDesktopWidget().screenGeometry() : self.setGeometry(0, 0, screen.width()/2, screen.height()))
 	
 
 	def init_frameless(self):
@@ -125,20 +126,24 @@ class FramelessMainWindow(QWidget):
 		QWidget.setMouseTracking(self, flag)
 		recursive_set(self)
 
-class FramelessTitleBar(QWidget):
-	test_signal     = pyqtSignal()
-	minimize_signal = pyqtSignal()
-	maximize_signal = pyqtSignal()
-	close_signal    = pyqtSignal()
-	move_signal     = pyqtSignal(QPoint)
 
+
+class FramelessTitleBar(QWidget):
+	test_signal        = pyqtSignal()
+	minimize_signal    = pyqtSignal()
+	maximize_signal    = pyqtSignal()
+	close_signal       = pyqtSignal()
+	move_signal        = pyqtSignal(QPoint)
+	aero_resize_signal = pyqtSignal()
 	def __init__(self):
 		super().__init__()
+		self.aero_snap_triggered = False
 		self.setStyleSheet('QWidget{font: 8pt "Inconsolata"; color: #3a3a3a}')
 		# self.setAutoFillBackground(True)
 		# p = self.palette()
 		# p.setColor(self.backgroundRole(), Qt.red)
 		# self.setPalette(p)
+		self.aero_snap_window = Aero_snap_indicator()
 		self.setMouseTracking(True)
 		self.borderRadius = 3   	
 		self.backgroundColor = QColor(255, 255, 255, 255)
@@ -165,11 +170,14 @@ class FramelessTitleBar(QWidget):
 		self.close_button.clicked.connect(   lambda : self.close_signal.emit())
 
 		self.menubar.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding))
-		self.menubar.addMenu ("text")
-		self.menubar.addMenu ("text")
-		self.menubar.addMenu ("text")
-
-		self.menubar.addMenu ("text")
+		self.menubar.addMenu ("File")
+		self.menubar.addMenu ("Edit")
+		self.menubar.addMenu ("View")
+		self.menubar.addMenu ("Layer")
+		self.menubar.addMenu ("Text")
+		self.menubar.addMenu ("Select")
+		self.menubar.addMenu ("Window")
+		self.menubar.addMenu ("Help")
 
 
 
@@ -215,11 +223,27 @@ class FramelessTitleBar(QWidget):
 	def mouseReleaseEvent(self,event):
 		if event.button() == Qt.LeftButton:
 			self.ori_pos = None
+			if self.aero_snap_triggered == True:
+				self.aero_resize_signal.emit()
+
+			if self.aero_snap_window.isVisible():
+				self.aero_snap_triggered = False
+				self.aero_snap_window.hide()
+
 
 	def mouseMoveEvent(self,event):
 		self.setCursor(Qt.ArrowCursor)
 		if self.ori_pos:
 			self.move_signal.emit(event.globalPos()-self.ori_pos)
+
+			if event.globalPos().x()==0:
+				print("a")
+				self.aero_snap_triggered = True
+				self.aero_snap_window.show()
+			else:
+				if self.aero_snap_window.isVisible():
+					self.aero_snap_triggered = False
+					self.aero_snap_window.hide()
 		event.accept()
 
 
@@ -249,7 +273,33 @@ class Title_menubar(QMenuBar):
 			stylesheet = ts.readAll()
 			print("set")
 			self.setStyleSheet(stylesheet)
-	
+
+
+class Aero_snap_indicator(QWidget):
+	def __init__(self):
+		super().__init__()
+		self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
+		self.setAttribute(Qt.WA_TranslucentBackground, True)
+		self.backgroundColor = QColor(255, 255, 255, 20)
+		self.foregroundColor = QColor(20, 20, 20, 20)
+		self.borderRadius    = 5
+
+	def show(self):
+		QWidget.show(self)
+		screen_resolution = QDesktopWidget().screenGeometry()
+		width, height = screen_resolution.width(), screen_resolution.height()
+		self.setGeometry(0, 0, width/2, height)
+
+	def paintEvent(self, event):
+		s = self.size()
+		qp = QPainter()
+		qp.begin(self)
+		qp.setRenderHint(QPainter.Antialiasing, True)
+		qp.setPen(self.foregroundColor)
+		qp.setBrush(self.backgroundColor)
+		path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius, self.borderRadius, self.borderRadius)
+		qp.drawPath(path)
+		qp.end()
 
 class Title_button(QPushButton):
 	def __init__(self, text="", w=10, h=10, r=5, button_type = None):

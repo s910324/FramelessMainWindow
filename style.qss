@@ -1,17 +1,30 @@
 
 QMenuBar{
-	height: 20px;
+	height: 25px;
 }
 
 QMenuBar::item {
 	font: 8pt "Inconsolata";
 	color: #3a3a3a;
+	padding: 0px 12px 0px 12px;
+	margin:  0px 0px 0px 0px;
 
 }
 
 QMenuBar::item:selected{
 
 	color: #5d5d5d;
-	background-color: #fafafa;
+	background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+  stop: 0 #fff,
+
+  stop: 1.0 #f6f6f6);
 
 }
+ 
+
+/*QMenuBar::item:selected{
+
+	color: #5d5d5d;
+	background-color: #fafafa;
+
+}*/
