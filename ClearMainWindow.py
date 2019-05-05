@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtSvg import *
+import pickle
  
 class FramelessMainWindow(QWidget):
 	def __init__(self):
@@ -180,6 +181,7 @@ class FramelessTitleBar(QWidget):
 		self.menubar.addMenu ("Select")
 		self.menubar.addMenu ("Window")
 		self.menubar.addMenu ("Help")
+
 
 
 
