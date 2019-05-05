@@ -71,7 +71,7 @@ class FramelessMainWindow(QWidget):
 			sense_array            = [      at_left_border,       at_right_border,       at_top_border,       at_bottom_border]
 			dist_array             = [event_to_left_border, event_to_right_border, event_to_top_border, event_to_bottom_border]
 
-			print (sense_array)
+			# print (sense_array)
 			if not self.resize_activated == True:
 				self.previous_sense = sense_array
 				self.previous_dist  = dist_array
@@ -144,11 +144,6 @@ class FramelessTitleBar(QWidget):
 		super().__init__()
 		self.aero_resize_tmp = []
 		self.aero_snap_triggered = False
-		self.setStyleSheet('QWidget{font: 8pt "Inconsolata"; color: #3a3a3a}')
-		# self.setAutoFillBackground(True)
-		# p = self.palette()
-		# p.setColor(self.backgroundRole(), Qt.red)
-		# self.setPalette(p)
 		self.aero_snap_window = Aero_snap_indicator()
 		self.setMouseTracking(True)
 		self.borderRadius = 3   	
@@ -161,6 +156,7 @@ class FramelessTitleBar(QWidget):
 		pixmap = pixmap.scaledToHeight(20)
 		self.title_icon.setPixmap(pixmap)
 		self.title_label     = QLabel("Python Frameless Mainwindow")
+		self.title_label.setObjectName("TitleLabel")
 		self.menubar         = Title_menubar()
 		self.setstyle_button = Title_button("-", 20, 20 ,10, "minimize")
 		self.minimize_button = Title_button("-", 20, 20 ,10, "minimize")
@@ -187,11 +183,14 @@ class FramelessTitleBar(QWidget):
 
 
 
-		self.main_layout = HBox(5, self.title_icon, 10, self.title_label ,self.menubar, -1, self.setstyle_button, self.minimize_button, self.maximize_button, self.close_button, 5)
+		self.main_layout = HBox(5, self.title_icon, self.title_label ,self.menubar, -1, self.setstyle_button, self.minimize_button, self.maximize_button, self.close_button, 5)
 		self.main_layout.setSpacing(5)
 		self.main_layout.setContentsMargins(QMargins(0,0,0,0))
 		self.setLayout(self.main_layout)
 		self.setFixedHeight(25)
+		self.setAttribute(Qt.WA_StyledBackground, True)
+		self.load_stylesheet()
+
 
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
@@ -208,18 +207,17 @@ class FramelessTitleBar(QWidget):
 	def setWindowTitle(self, title):
 		self.title_label.setText(title)
 
-	def paintEvent(self, event):
-		s = self.size()
-		qp = QPainter()
-		qp.begin(self)
-		qp.setRenderHint(QPainter.Antialiasing, True)
-		qp.setPen(self.foregroundColor)
-		qp.setBrush(self.backgroundColor)
-		path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius, 0, 0)
-		qp.drawPath(path)
-		qp.end()
 
-
+	def load_stylesheet(self):
+		f = QFile("./style.qss")
+		if not f.exists():
+			return ""
+		else:
+			f.open(QFile.ReadOnly | QFile.Text)
+			ts = QTextStream(f)
+			stylesheet = ts.readAll()
+			print("set")
+			self.setStyleSheet(stylesheet)
 
 
 	def mousePressEvent(self,event):
@@ -242,45 +240,65 @@ class FramelessTitleBar(QWidget):
 		if self.ori_pos:
 			self.move_signal.emit(event.globalPos()-self.ori_pos)
 
-			screen_res    = QDesktopWidget().screenGeometry()
+			aero_sense    = 15
+			screen_res    = QDesktopWidget().availableGeometry(event.globalPos())
+			screen_x0     = screen_res.x()
+			screen_y0     = screen_res.y()
 			screen_width  = screen_res.width()
 			screen_height = screen_res.height()
 			cursor_x      = event.globalPos().x()
 			cursor_y      = event.globalPos().y()
-
-			if  cursor_x == 0:
+			dist_array    = [(screen_x0 - cursor_x), (screen_x0 + screen_width - cursor_x), (screen_y0 - cursor_y), (screen_y0 + screen_height - cursor_y)] 
+			sense_array   = [abs(dist) < aero_sense for dist in dist_array]
+			# print(QDesktopWidget().screenNumber(event.globalPos()), QDesktopWidget().screenGeometry(event.globalPos()), cursor_x, cursor_y)
+			if sum(sense_array) > 0:
 				self.aero_snap_triggered = True
-				self.aero_snap_window.show_at(1, 1, screen_width/2, screen_height)
-				self.aero_resize_tmp = [1, 1, screen_width/2, screen_height]
-			elif (screen_width - cursor_x ) < 10:
-				self.aero_snap_triggered = True
-				self.aero_snap_window.show_at(screen_width/2, 1, screen_width/2, screen_height)
-				self.aero_resize_tmp = [screen_width/2, 1, screen_width/2, screen_height]
+				if   sense_array == [1, 0, 1, 0]:
+					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height/2)
+					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height/2]
 
+				elif sense_array == [0, 1, 1, 0]:
+					self.aero_snap_window.show_at(screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height/2)
+					self.aero_resize_tmp =       [screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height/2]
+
+				elif sense_array == [0, 1, 0, 1]:
+					self.aero_snap_window.show_at(screen_x0 + (screen_width/2), screen_y0 + (screen_height/2), screen_width/2, screen_height/2)
+					self.aero_resize_tmp =       [screen_x0 + (screen_width/2), screen_y0 + (screen_height/2), screen_width/2, screen_height/2]
+
+				elif sense_array == [1, 0, 0, 1]:
+					self.aero_snap_window.show_at(screen_x0, screen_y0 + (screen_height/2), screen_width/2, screen_height/2)
+					self.aero_resize_tmp =       [screen_x0, screen_y0 + (screen_height/2), screen_width/2, screen_height/2]
+
+				elif sense_array == [1, 0, 0, 0]:
+					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height)
+					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height]
+
+				elif sense_array == [0, 1, 0, 0]:
+					self.aero_snap_window.show_at(screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height)
+					self.aero_resize_tmp =       [screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height]
+
+				elif sense_array == [0, 0, 1, 0]:
+					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + 1, screen_width, screen_height/2)
+					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + 1, screen_width, screen_height/2]
+
+				elif sense_array == [0, 0, 0, 1]:
+					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + (screen_height/2), screen_width, screen_height/2)
+					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + (screen_height/2), screen_width, screen_height/2]					
 			else:
 				if self.aero_snap_window.isVisible():
 					self.aero_snap_triggered = False
 					self.aero_snap_window.hide()
+
 		event.accept()
 
 
 	def mouseDoubleClickEvent (self, event):
 		self.maximize_signal.emit()
-		print("nnn")
 
 class Title_menubar(QMenuBar):
 	def __init__(self):
 		super().__init__()
 
-	# 	self.main_layout = QHBoxLayout()
-	# 	self.main_layout.setSpacing(0)
-	# 	self.main_layout.setContentsMargins(QMargins(0,0,0,0))
-	# 	self.setLayout(self.main_layout)
-
-	# def addMenu(self, text):
-		# menu_button = QPushButton(text)
-		# self.main_layout.addWidget(menu_button)
-		# return menu_button
 	def load_stylesheet(self):
 		f = QFile("./style.qss")
 		if not f.exists():
@@ -289,41 +307,41 @@ class Title_menubar(QMenuBar):
 			f.open(QFile.ReadOnly | QFile.Text)
 			ts = QTextStream(f)
 			stylesheet = ts.readAll()
-			print("set")
 			self.setStyleSheet(stylesheet)
 
 
-class Aero_snap_indicator(QWidget):
-	def __init__(self):
-		super().__init__()
-		self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
-		self.setAttribute(Qt.WA_TranslucentBackground, True)
-		self.backgroundColor = QColor(180, 180, 180, 50)
-		self.foregroundColor = QColor(20, 20, 20, 0)
-		self.borderRadius    = 5
 
-	def show(self):
-		QWidget.show(self)
-		screen_resolution = QDesktopWidget().screenGeometry()
-		width, height = screen_resolution.width(), screen_resolution.height()
-		self.setGeometry(0, 0, width/2, height)
+class Aero_snap_indicator(QWidget):
+	def __init__(self, parent = None):
+		super().__init__()
+		if not parent:
+			indicator   = Aero_snap_indicator(self)
+			main_layout = QHBoxLayout()
+			main_layout.addWidget(indicator)
+			main_layout.setContentsMargins(QMargins(5,5,5,5))
+			self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint | Qt.SubWindow )
+			self.setAttribute(Qt.WA_TranslucentBackground, True)
+			self.setLayout(main_layout)
+			
+		else:
+			self.setAttribute(Qt.WA_StyledBackground, True)
+		self.load_stylesheet()
 
 	def show_at(self, x, y, w, h):
+		self.load_stylesheet()
 		self.setGeometry(x, y, w, h)
-		QWidget.show(self)
+		QMainWindow.show(self)
 
+	def load_stylesheet(self):
+		f = QFile("./style.qss")
+		if not f.exists():
+			return ""
+		else:
+			f.open(QFile.ReadOnly | QFile.Text)
+			ts = QTextStream(f)
+			stylesheet = ts.readAll()
+			self.setStyleSheet(stylesheet)
 
-
-	def paintEvent(self, event):
-		s = self.size()
-		qp = QPainter()
-		qp.begin(self)
-		qp.setRenderHint(QPainter.Antialiasing, True)
-		qp.setPen(self.foregroundColor)
-		qp.setBrush(self.backgroundColor)
-		path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius, self.borderRadius, self.borderRadius)
-		qp.drawPath(path)
-		qp.end()
 
 class Title_button(QPushButton):
 	def __init__(self, text="", w=10, h=10, r=5, button_type = None):
@@ -332,31 +350,15 @@ class Title_button(QPushButton):
 		self.button_type = button_type
 		self.setFixedHeight(h)
 		self.setFixedWidth(w)
-		self.borderRadius = r
-		self.hovered_background_color = QColor(200, 200, 200, 100)
-		self.neutral_background_color = QColor(200, 200, 200, 0)
-		self.foregroundColor = QColor(30, 180, 30, 255)
-		
-		self.setStyleSheet("""
-		QPushButton{
-			font: 8pt "Inconsolata";
-			background-color: rgba(200, 200, 200, 0%);
-			border-style: solid 0px; 
-			border-radius: 8px; margin: 2px;
-		}
-		QPushButton:Hover{
-			font: 8pt "Inconsolata";
-			background-color: rgba(200, 200, 200, 20%);
-			border-style: solid 0px; 
-			border-radius: 8px; margin: 2px;
-		}""")
-		
+		self.load_stylesheet()
 		svg = {"minimize": "D:/Code Data/ClearMaindow/src/drawing-2.svg", "maximize": "D:/Code Data/ClearMaindow/src/drawing-3.svg", "close": "D:/Code Data/ClearMaindow/src/drawing-4.svg", }
 		self.svg = open(svg[self.button_type], 'r').read().replace("#000000", "#555555")
-		
 		self.render_svg(self.svg)
 
 	def enterEvent(self, event):
+		m = self.palette().brush( QPalette.BrightText).color().toRgb()
+		print(self.styleSheet())
+
 
 		self.render_svg(self.svg.replace("#555555", "#009900"))
 
@@ -371,37 +373,16 @@ class Title_button(QPushButton):
 		pixmap = QPixmap.fromImage(image)
 		icon = QIcon(pixmap)
 		self.setIcon(icon)
-	# def paintEvent(self, event):
-	# 	s = self.size()
-	# 	w, h, r = s.height(), s.width(), min(s.height(), s.width())/2
-	# 	ellipse_scale = 0.7
-	# 	symbol_scale  = 0.4
-	# 	qp = QPainter()
-	# 	qp.begin(self)
-	# 	qp.setRenderHint(QPainter.Antialiasing, True)
-	# 	# qp.setPen(QPen(QColor(0, 0, 0, 0), 1))
-	# 	# qp.setBrush( self.hovered_background_color if self.hovered else self.neutral_background_color)
-	# 	# qp.drawEllipse(QRectF((1-ellipse_scale)*r, (1-ellipse_scale)*r, r*2*ellipse_scale, r*2*ellipse_scale))
-	# 	qp.setPen(QPen(QColor(self.foregroundColor), 1.5))
 
-	# 	if self.button_type == "minimize":
-	# 		line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r)), QPointF(r, (0.7 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r - (0.38 * symbol_scale * r))])
-	# 		qp.drawPolyline(line)
-	# 	elif self.button_type == "maximize":
-	# 		line = QPolygonF( [QPointF(r - (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r)), QPointF(r, (0.5 + symbol_scale) * r), QPointF(r + (0.8 * symbol_scale * r), r + (0.38 * symbol_scale * r))])
-	# 		qp.drawPolyline(line)
-	# 	else:
-	# 		line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r))])
-	# 		qp.drawPolyline(line)
-	# 		line = QPolygonF( [QPointF(r - (0.7 * symbol_scale * r), r - (0.60 * symbol_scale * r)), QPointF(r + (0.7 * symbol_scale * r), r + (0.60 * symbol_scale * r))])
-	# 		qp.drawPolyline(line)
-		
-	# 	# path = RoundCornerRect(s.width(), s.height(), self.borderRadius, self.borderRadius,self.borderRadius,self.borderRadius)
-	# 	# qp.drawPath(path)
-	# 	# qp.drawPolyLine()
-	# 	qp.end()
-
-
+	def load_stylesheet(self):
+		f = QFile("./style.qss")
+		if not f.exists():
+			return ""
+		else:
+			f.open(QFile.ReadOnly | QFile.Text)
+			ts = QTextStream(f)
+			stylesheet = ts.readAll()
+			self.setStyleSheet(stylesheet)
 
 class RoundCornerRect(QPainterPath):
 	def __init__(self, w, h, r1, r2, r3, r4):

@@ -12,19 +12,43 @@ QMenuBar::item {
 }
 
 QMenuBar::item:selected{
-
 	color: #5d5d5d;
 	background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-  stop: 0 #fff,
-
-  stop: 1.0 #f6f6f6);
+    stop: 0 #fff,
+    stop: 1.0 #f6f6f6);
 
 }
  
 
-/*QMenuBar::item:selected{
 
-	color: #5d5d5d;
-	background-color: #fafafa;
+Aero_snap_indicator{
+	background-color: rgba(255, 255, 255, 30);
+	border: 1px solid rgba(100, 100, 100, 50);
+	border-radius: 5px;
+}
 
-}*/
+FramelessTitleBar{
+	background-color: rgba(255, 255, 255, 255);
+	border-top-left-radius: 3px;
+	border-top-right-radius: 3px;
+	border-bottom-left-radius: 0px;
+	border-bottom-right-radius: 0px;
+}
+
+FramelessTitleBar #TitleLabel {
+	font: 8pt "Inconsolata";
+	color: #7a7a7a;
+}
+
+
+Title_button{
+	font: 8pt "Inconsolata";
+	background-color: rgba(200, 200, 200, 0%);
+	border-style: solid 0px; 
+	border-radius: 8px; margin: 2px;
+	color: #ff0000;
+}
+Title_button:Hover{
+	background-color: rgba(200, 200, 200, 20%);
+	color: #ffff00;
+}
