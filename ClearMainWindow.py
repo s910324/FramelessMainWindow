@@ -331,6 +331,7 @@ class Aero_snap_indicator(QWidget):
 class Title_button(QPushButton):
 	def __init__(self, text="", w=10, h=10, r=5, button_type = None):
 		super().__init__()
+		self.setProperty('Test', False)
 		self.hovered = False
 		self._iconcolor = "#555555"
 		self.button_type = button_type
@@ -349,12 +350,21 @@ class Title_button(QPushButton):
 	@iconcolor.setter
 	def iconcolor(self, value):
 		self._iconcolor  = value
+		print(value)
 
 
 	def enterEvent(self, event):
+		self.setProperty('Test', True)
+		self.style().unpolish(self)
+		self.style().polish(self)
+		self.update()
 		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
 
 	def leaveEvent(self, event):
+		self.setProperty('Test', False)
+		self.style().unpolish(self)
+		self.style().polish(self)
+		self.update()
 		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
 
 

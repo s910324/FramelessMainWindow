@@ -40,17 +40,29 @@ FramelessTitleBar #TitleLabel {
 	color: #7a7a7a;
 }
 
-
+/*
 Title_button{
 	font: 8pt "Inconsolata";
 	background-color: rgba(200, 200, 200, 0%);
 	border-style: solid 0px; 
 	border-radius: 8px; margin: 2px;
 	qproperty-iconcolor: #ff0000;
-}
+}*/
 
-Title_button:hover{
+/*Title_button:hover{
 	background-color: rgba(200, 200, 200, 30%);
 	qproperty-iconcolor: #009900;
-}
+}*/
 
+Title_button[Test=true]{
+	background-color: rgba(200, 200, 200, 30%);
+	border-style: solid 0px; 
+	border-radius: 8px; margin: 2px;
+	qproperty-iconcolor: #009900;
+}
+Title_button[Test=false]{
+	background-color: rgba(200, 200, 200, 0%);
+	border-style: solid 0px; 
+	border-radius: 8px; margin: 2px;
+	qproperty-iconcolor: #555555;
+}
