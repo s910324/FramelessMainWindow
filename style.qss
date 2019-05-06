@@ -46,9 +46,11 @@ Title_button{
 	background-color: rgba(200, 200, 200, 0%);
 	border-style: solid 0px; 
 	border-radius: 8px; margin: 2px;
-	color: #ff0000;
+	qproperty-iconcolor: #ff0000;
 }
-Title_button:Hover{
-	background-color: rgba(200, 200, 200, 20%);
-	color: #ffff00;
+
+Title_button:hover{
+	background-color: rgba(200, 200, 200, 30%);
+	qproperty-iconcolor: #009900;
 }
+

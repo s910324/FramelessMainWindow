@@ -10,7 +10,7 @@ class FramelessMainWindow(QWidget):
 		QWidget.__init__(self)
 		self.init_layout()
 		self.init_frameless()
-
+		self.load_stylesheet()
 
 	def init_layout(self):
 		self.main_layout    = QVBoxLayout()
@@ -132,7 +132,15 @@ class FramelessMainWindow(QWidget):
 		QWidget.setMouseTracking(self, flag)
 		recursive_set(self)
 
-
+	def load_stylesheet(self):
+		f = QFile("./style.qss")
+		if not f.exists():
+			return ""
+		else:
+			f.open(QFile.ReadOnly | QFile.Text)
+			ts = QTextStream(f)
+			stylesheet = ts.readAll()
+			self.setStyleSheet(stylesheet)
 
 class FramelessTitleBar(QWidget):
 	test_signal        = pyqtSignal()
@@ -159,7 +167,6 @@ class FramelessTitleBar(QWidget):
 		self.title_label     = QLabel("Python Frameless Mainwindow")
 		self.title_label.setObjectName("TitleLabel")
 		self.menubar         = Title_menubar()
-		self.setstyle_button = Title_button("-", 20, 20 ,10, "minimize")
 		self.minimize_button = Title_button("-", 20, 20 ,10, "minimize")
 		self.maximize_button = Title_button("[]", 20, 20,10, "maximize")
 		self.close_button    = Title_button("x", 20, 20,10, "close")
@@ -167,7 +174,6 @@ class FramelessTitleBar(QWidget):
 		self.minimize_button.setContentsMargins(QMargins(0,0,0,0))
 		self.maximize_button.setContentsMargins(QMargins(0,0,0,0))
 		self.close_button.setContentsMargins(QMargins(0,0,0,0))
-		self.setstyle_button.clicked.connect(self.menubar.load_stylesheet)
 		self.minimize_button.clicked.connect(lambda : self.minimize_signal.emit())
 		self.maximize_button.clicked.connect(lambda : self.maximize_signal.emit())
 		self.close_button.clicked.connect(   lambda : self.close_signal.emit())
@@ -185,13 +191,12 @@ class FramelessTitleBar(QWidget):
 
 
 
-		self.main_layout = HBox(5, self.title_icon, self.title_label ,self.menubar, -1, self.setstyle_button, self.minimize_button, self.maximize_button, self.close_button, 5)
+		self.main_layout = HBox(5, self.title_icon, self.title_label ,self.menubar, -1, self.minimize_button, self.maximize_button, self.close_button, 5)
 		self.main_layout.setSpacing(5)
 		self.main_layout.setContentsMargins(QMargins(0,0,0,0))
 		self.setLayout(self.main_layout)
 		self.setFixedHeight(25)
 		self.setAttribute(Qt.WA_StyledBackground, True)
-		self.load_stylesheet()
 
 
 	def setMouseTracking(self, flag):
@@ -209,17 +214,6 @@ class FramelessTitleBar(QWidget):
 	def setWindowTitle(self, title):
 		self.title_label.setText(title)
 
-
-	def load_stylesheet(self):
-		f = QFile("./style.qss")
-		if not f.exists():
-			return ""
-		else:
-			f.open(QFile.ReadOnly | QFile.Text)
-			ts = QTextStream(f)
-			stylesheet = ts.readAll()
-			print("set")
-			self.setStyleSheet(stylesheet)
 
 
 	def mousePressEvent(self,event):
@@ -301,17 +295,6 @@ class Title_menubar(QMenuBar):
 	def __init__(self):
 		super().__init__()
 
-	def load_stylesheet(self):
-		f = QFile("./style.qss")
-		if not f.exists():
-			return ""
-		else:
-			f.open(QFile.ReadOnly | QFile.Text)
-			ts = QTextStream(f)
-			stylesheet = ts.readAll()
-			self.setStyleSheet(stylesheet)
-
-
 
 class Aero_snap_indicator(QWidget):
 	def __init__(self, parent = None):
@@ -327,12 +310,13 @@ class Aero_snap_indicator(QWidget):
 			
 		else:
 			self.setAttribute(Qt.WA_StyledBackground, True)
-		self.load_stylesheet()
+
 
 	def show_at(self, x, y, w, h):
 		self.load_stylesheet()
 		self.setGeometry(x, y, w, h)
 		QMainWindow.show(self)
+
 
 	def load_stylesheet(self):
 		f = QFile("./style.qss")
@@ -344,28 +328,35 @@ class Aero_snap_indicator(QWidget):
 			stylesheet = ts.readAll()
 			self.setStyleSheet(stylesheet)
 
-
 class Title_button(QPushButton):
 	def __init__(self, text="", w=10, h=10, r=5, button_type = None):
 		super().__init__()
 		self.hovered = False
+		self._iconcolor = "#555555"
 		self.button_type = button_type
 		self.setFixedHeight(h)
 		self.setFixedWidth(w)
-		self.load_stylesheet()
 		svg = {"minimize": "D:/Code Data/ClearMaindow/src/drawing-2.svg", "maximize": "D:/Code Data/ClearMaindow/src/drawing-3.svg", "close": "D:/Code Data/ClearMaindow/src/drawing-4.svg", }
-		self.svg = open(svg[self.button_type], 'r').read().replace("#000000", "#555555")
-		self.render_svg(self.svg)
+		self.svg = open(svg[self.button_type], 'r').read()
+		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
+		
+		
+
+	@pyqtProperty(str)
+	def iconcolor(self):
+		return self._iconcolor
+		
+	@iconcolor.setter
+	def iconcolor(self, value):
+		self._iconcolor  = value
+
 
 	def enterEvent(self, event):
-		m = self.palette().brush( QPalette.BrightText).color().toRgb()
-		print(self.styleSheet())
-
-
-		self.render_svg(self.svg.replace("#555555", "#009900"))
+		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
 
 	def leaveEvent(self, event):
-		self.render_svg(self.svg)
+		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
+
 
 	def render_svg(self, svg_stream):
 		renderer = QSvgRenderer(QXmlStreamReader(svg_stream))
@@ -376,15 +367,8 @@ class Title_button(QPushButton):
 		icon = QIcon(pixmap)
 		self.setIcon(icon)
 
-	def load_stylesheet(self):
-		f = QFile("./style.qss")
-		if not f.exists():
-			return ""
-		else:
-			f.open(QFile.ReadOnly | QFile.Text)
-			ts = QTextStream(f)
-			stylesheet = ts.readAll()
-			self.setStyleSheet(stylesheet)
+
+
 
 class RoundCornerRect(QPainterPath):
 	def __init__(self, w, h, r1, r2, r3, r4):
