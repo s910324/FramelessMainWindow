@@ -151,34 +151,29 @@ class FramelessTitleBar(QWidget):
 	aero_resize_signal = pyqtSignal(int, int, int, int)
 	def __init__(self):
 		super().__init__()
-		self.aero_resize_tmp = []
-		self.aero_snap_triggered = False
-		self.aero_snap_window = Aero_snap_indicator()
-		self.setMouseTracking(True)
-		self.borderRadius = 3   	
-		self.backgroundColor = QColor(255, 255, 255, 255)
-		self.foregroundColor = QColor(0, 0, 0, 0)
-
-		self.ori_pos = None
-		self.title_icon      = QLabel()
-		pixmap = QPixmap("./src/default_icon.png")
-		pixmap = pixmap.scaledToHeight(20)
+		self.old_sense_array      = [0,0,0,0]
+		self.aero_resize_geometry = []
+		self.aero_snap_triggered  = False
+		self.aero_snap_window     = Aero_snap_indicator()
+		
+		self.ori_pos              = None
+		self.title_icon           = QLabel()
+		pixmap                    = QPixmap("./src/default_icon.png")
+		pixmap                    = pixmap.scaledToHeight(20)
+		
 		self.title_icon.setPixmap(pixmap)
 		self.title_label     = QLabel("Python Frameless Mainwindow")
 		self.title_label.setObjectName("TitleLabel")
 		self.menubar         = Title_menubar()
-		self.minimize_button = Title_button("-", 20, 20 ,10, "minimize")
-		self.maximize_button = Title_button("[]", 20, 20,10, "maximize")
-		self.close_button    = Title_button("x", 20, 20,10, "close")
-		self.setContentsMargins(QMargins(0,0,0,0))
-		self.minimize_button.setContentsMargins(QMargins(0,0,0,0))
-		self.maximize_button.setContentsMargins(QMargins(0,0,0,0))
-		self.close_button.setContentsMargins(QMargins(0,0,0,0))
+		self.minimize_button = Title_button(w = 20, h = 20, button_type = "minimize")
+		self.maximize_button = Title_button(w = 20, h = 20, button_type = "maximize")
+		self.close_button    = Title_button(w = 20, h = 20, button_type = "close")
+		
 		self.minimize_button.clicked.connect(lambda : self.minimize_signal.emit())
 		self.maximize_button.clicked.connect(lambda : self.maximize_signal.emit())
 		self.close_button.clicked.connect(   lambda : self.close_signal.emit())
 
-		self.menubar.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding))
+		
 		self.menubar.addMenu ("File")
 		self.menubar.addMenu ("Edit")
 		self.menubar.addMenu ("View")
@@ -187,9 +182,7 @@ class FramelessTitleBar(QWidget):
 		self.menubar.addMenu ("Select")
 		self.menubar.addMenu ("Window")
 		self.menubar.addMenu ("Help")
-
-
-
+		self.menubar.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding))
 
 		self.main_layout = HBox(5, self.title_icon, self.title_label ,self.menubar, -1, self.minimize_button, self.maximize_button, self.close_button, 5)
 		self.main_layout.setSpacing(5)
@@ -197,6 +190,7 @@ class FramelessTitleBar(QWidget):
 		self.setLayout(self.main_layout)
 		self.setFixedHeight(25)
 		self.setAttribute(Qt.WA_StyledBackground, True)
+		self.setMouseTracking(True)
 
 
 	def setMouseTracking(self, flag):
@@ -224,16 +218,17 @@ class FramelessTitleBar(QWidget):
 		if event.button() == Qt.LeftButton:
 			self.ori_pos = None
 			if self.aero_snap_triggered == True:
-				self.aero_resize_signal.emit(*self.aero_resize_tmp)
+				self.aero_resize_signal.emit(*self.aero_resize_geometry)
 
 			if self.aero_snap_window.isVisible():
 				self.aero_snap_triggered = False
 				self.aero_snap_window.hide()
 
 
-	def mouseMoveEvent(self,event):
+	def mouseMoveEvent(self, event):
 		self.setCursor(Qt.ArrowCursor)
 		if self.ori_pos:
+
 			self.move_signal.emit(event.globalPos()-self.ori_pos)
 
 			aero_sense    = 15
@@ -246,47 +241,45 @@ class FramelessTitleBar(QWidget):
 			cursor_y      = event.globalPos().y()
 			dist_array    = [(screen_x0 - cursor_x), (screen_x0 + screen_width - cursor_x), (screen_y0 - cursor_y), (screen_y0 + screen_height - cursor_y)] 
 			sense_array   = [abs(dist) < aero_sense for dist in dist_array]
-			# print(QDesktopWidget().screenNumber(event.globalPos()), QDesktopWidget().screenGeometry(event.globalPos()), cursor_x, cursor_y)
-			if sum(sense_array) > 0:
-				self.aero_snap_triggered = True
-				if   sense_array == [1, 0, 1, 0]:
-					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height/2)
-					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height/2]
 
-				elif sense_array == [0, 1, 1, 0]:
-					self.aero_snap_window.show_at(screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height/2)
-					self.aero_resize_tmp =       [screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height/2]
+			if not(self.old_sense_array == sense_array):
+				if sum(sense_array) > 0:
 
-				elif sense_array == [0, 1, 0, 1]:
-					self.aero_snap_window.show_at(screen_x0 + (screen_width/2), screen_y0 + (screen_height/2), screen_width/2, screen_height/2)
-					self.aero_resize_tmp =       [screen_x0 + (screen_width/2), screen_y0 + (screen_height/2), screen_width/2, screen_height/2]
+					self.aero_snap_triggered = True
+					if   sense_array == [1, 0, 1, 0]:
+						self.aero_resize_geometry = [screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height/2]
 
-				elif sense_array == [1, 0, 0, 1]:
-					self.aero_snap_window.show_at(screen_x0, screen_y0 + (screen_height/2), screen_width/2, screen_height/2)
-					self.aero_resize_tmp =       [screen_x0, screen_y0 + (screen_height/2), screen_width/2, screen_height/2]
+					elif sense_array == [0, 1, 1, 0]:
+						self.aero_resize_geometry = [screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height/2]
 
-				elif sense_array == [1, 0, 0, 0]:
-					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height)
-					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height]
+					elif sense_array == [0, 1, 0, 1]:
+						self.aero_resize_geometry = [screen_x0 + (screen_width/2), screen_y0 + (screen_height/2), screen_width/2, screen_height/2]
 
-				elif sense_array == [0, 1, 0, 0]:
-					self.aero_snap_window.show_at(screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height)
-					self.aero_resize_tmp =       [screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height]
+					elif sense_array == [1, 0, 0, 1]:
+						self.aero_resize_geometry = [screen_x0, screen_y0 + (screen_height/2), screen_width/2, screen_height/2]
 
-				elif sense_array == [0, 0, 1, 0]:
-					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + 1, screen_width, screen_height/2)
-					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + 1, screen_width, screen_height/2]
+					elif sense_array == [1, 0, 0, 0]:
+						self.aero_resize_geometry = [screen_x0 + 1, screen_y0 + 1, screen_width/2, screen_height]
 
-				elif sense_array == [0, 0, 0, 1]:
-					self.aero_snap_window.show_at(screen_x0 + 1, screen_y0 + (screen_height/2), screen_width, screen_height/2)
-					self.aero_resize_tmp =       [screen_x0 + 1, screen_y0 + (screen_height/2), screen_width, screen_height/2]					
-			else:
-				if self.aero_snap_window.isVisible():
-					self.aero_snap_triggered = False
-					self.aero_snap_window.hide()
+					elif sense_array == [0, 1, 0, 0]:
+						self.aero_resize_geometry = [screen_x0 + (screen_width/2), screen_y0 + 1, screen_width/2, screen_height]
+
+					elif sense_array == [0, 0, 1, 0]:
+						self.aero_resize_geometry = [screen_x0 + 1, screen_y0 + 1, screen_width, screen_height/2]
+
+					elif sense_array == [0, 0, 0, 1]:
+						self.aero_resize_geometry = [screen_x0 + 1, screen_y0 + (screen_height/2), screen_width, screen_height/2]					
+
+					self.aero_snap_window.show_at(*self.aero_resize_geometry)
+
+				else:
+					if self.aero_snap_window.isVisible():
+						self.aero_snap_triggered = False
+						self.aero_snap_window.hide()
+
+				self.old_sense_array = sense_array
 
 		event.accept()
-
 
 	def mouseDoubleClickEvent (self, event):
 		self.maximize_signal.emit()
@@ -307,15 +300,18 @@ class Aero_snap_indicator(QWidget):
 			self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint | Qt.SubWindow )
 			self.setAttribute(Qt.WA_TranslucentBackground, True)
 			self.setLayout(main_layout)
-			
 		else:
 			self.setAttribute(Qt.WA_StyledBackground, True)
 
-
 	def show_at(self, x, y, w, h):
+		mouse_pos      = QCursor.pos()
+		self.animation = QPropertyAnimation(self, b"geometry")
+		self.animation.setDuration(150)
+		self.animation.setStartValue(self.geometry() if self.isVisible() else QRect(mouse_pos.x(), mouse_pos.y(), 0, 0))
+		self.animation.setEndValue(QRect(x, y, w, h))
 		self.load_stylesheet()
-		self.setGeometry(x, y, w, h)
 		QMainWindow.show(self)
+		self.animation.start()
 
 
 	def load_stylesheet(self):
@@ -329,52 +325,56 @@ class Aero_snap_indicator(QWidget):
 			self.setStyleSheet(stylesheet)
 
 class Title_button(QPushButton):
-	def __init__(self, text="", w=10, h=10, r=5, button_type = None):
+	def __init__(self, w=10, h=10, button_type = None):
 		super().__init__()
-		self.setProperty('Test', False)
-		self.hovered = False
-		self._iconcolor = "#555555"
-		self.button_type = button_type
-		self.setFixedHeight(h)
-		self.setFixedWidth(w)
-		svg = {"minimize": "D:/Code Data/ClearMaindow/src/drawing-2.svg", "maximize": "D:/Code Data/ClearMaindow/src/drawing-3.svg", "close": "D:/Code Data/ClearMaindow/src/drawing-4.svg", }
-		self.svg = open(svg[self.button_type], 'r').read()
-		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
+		self._svg_icon_color = ""
+		self._svg_icon       = ""
+		self._button_type    = button_type
+		self.setProperty('hovered', False)
+		self.setProperty('button_type', button_type)
+		self.setFixedSize(w,h)
 		
+	@pyqtProperty(str)
+	def svg_icon(self):
+		return self._svg_icon
 		
+	@svg_icon.setter
+	def svg_icon(self, value):
+		self._svg_icon  = value
 
 	@pyqtProperty(str)
-	def iconcolor(self):
-		return self._iconcolor
+	def svg_icon_color(self):
+		return self._svg_icon_color
 		
-	@iconcolor.setter
-	def iconcolor(self, value):
-		self._iconcolor  = value
-		print(value)
+	@svg_icon_color.setter
+	def svg_icon_color(self, value):
+		self._svg_icon_color  = value
 
-
-	def enterEvent(self, event):
-		self.setProperty('Test', True)
+	def update_style(self):
 		self.style().unpolish(self)
 		self.style().polish(self)
 		self.update()
-		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
+		self.svg = open(self.svg_icon, 'r').read()
+		self.render_svg(self.svg.replace("#000000", str(self.property("svg_icon_color")) ))
+		
+	def enterEvent(self, event):
+		self.setProperty('hovered', True)
+		self.update_style()
 
 	def leaveEvent(self, event):
-		self.setProperty('Test', False)
-		self.style().unpolish(self)
-		self.style().polish(self)
-		self.update()
-		self.render_svg(self.svg.replace("#000000", str(self.property("iconcolor")) ))
+		self.setProperty('hovered', False)
+		self.update_style()
 
+	def showEvent(self, event):
+		self.update_style()
 
 	def render_svg(self, svg_stream):
 		renderer = QSvgRenderer(QXmlStreamReader(svg_stream))
-		image = QImage(32, 32, QImage.Format_ARGB32)
+		image    = QImage(32, 32, QImage.Format_ARGB32)
 		image.fill(0x00000000)
 		renderer.render(QPainter(image))
-		pixmap = QPixmap.fromImage(image)
-		icon = QIcon(pixmap)
+		pixmap   = QPixmap.fromImage(image)
+		icon     = QIcon(pixmap)
 		self.setIcon(icon)
 
 
