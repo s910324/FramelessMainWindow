@@ -6,7 +6,7 @@ from PyQt5.QtSvg import *
 import pickle
  
 class FramelessMainWindow(QWidget):
-	def __init__(self):
+	def __init__(self, title = "Python", show_title = False):
 		QWidget.__init__(self)
 		self.init_layout()
 		self.init_frameless()
@@ -15,25 +15,60 @@ class FramelessMainWindow(QWidget):
 	def init_layout(self):
 		self.main_layout    = QVBoxLayout()
 		self.main_window    = QMainWindow()
-		self.main_title_bar = FramelessTitleBar()
+		self.headerbar = FramelessTitleBar()
+		self.header_menubar = self.headerbar.menubar
 
 		self.main_layout.setSpacing(0)
-		self.main_layout.addWidget(self.main_title_bar)
+		self.main_layout.addWidget(self.headerbar)
 		self.main_layout.addWidget(self.main_window)
 		self.main_window.setCentralWidget(QMdiArea())
 		self.main_window.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
 		self.setLayout(self.main_layout)
 
-		self.main_title_bar.minimize_signal.connect(self.showMinimized)
-		self.main_title_bar.maximize_signal.connect(lambda : self.showNormal() if self.isMaximized() else self.showMaximized())
-		self.main_title_bar.close_signal.connect(self.close)
-		self.main_title_bar.move_signal.connect(lambda pos : None if self.isMaximized() else self.move(pos) )
-		self.main_title_bar.aero_resize_signal.connect(self.a)
+		self.headerbar.minimize_signal.connect(self.showMinimized)
+		self.headerbar.maximize_signal.connect(lambda : self.showNormal() if self.isMaximized() else self.showMaximized())
+		self.headerbar.close_signal.connect(self.close)
+		self.headerbar.move_signal.connect(lambda pos : None if self.isMaximized() else self.move(pos) )
+		self.headerbar.aero_resize_signal.connect(self.a)
+
+		self.setWindowTitle("Python")
+		self.showTitle(False)
+		self.init_menu()
+
+	def init_menu(self):
+		exitAction = QAction( '&Exit', self)
+		exitAction.triggered.connect(self.close)
+				
+		m = self.header_menubar.addMenu ("File")
+		m.addAction(exitAction)
+		self.header_menubar.addMenu ("Edit")
+		self.header_menubar.addMenu ("View")
+		self.header_menubar.addMenu ("Layer")
+		self.header_menubar.addMenu ("Text")
+		self.header_menubar.addMenu ("Select")
+		self.header_menubar.addMenu ("Window")
+		self.header_menubar.addMenu ("Help")
+
+		
+
+
+	def setWindowTitle(self, title):
+		QWidget.setWindowTitle(self,title)
+		self.headerbar.setWindowTitle(title)
+
+	def showTitle(self, show):
+		self.headerbar.showTitle(show)
+
+
+	def titleVisible(self):
+		return self.headerbar.titleVisible()
 	
 	def a(self, x, y, w, h):
 		screen = QDesktopWidget().screenGeometry() 
 		self.move(x, y)
 		self.resize(w, h)
+
+
 
 	def init_frameless(self):
 		self.edge_sense_dist  = 3
@@ -44,7 +79,6 @@ class FramelessMainWindow(QWidget):
 
 
 	def showMaximized(self):
-		print("mmmm")
 		QWidget.show(self)
 		QWidget.showMaximized(self)
 
@@ -151,6 +185,8 @@ class FramelessTitleBar(QWidget):
 	aero_resize_signal = pyqtSignal(int, int, int, int)
 	def __init__(self):
 		super().__init__()
+		self._title_text          = "Python"
+		self._show_title          = False
 		self.old_sense_array      = [0,0,0,0]
 		self.aero_resize_geometry = []
 		self.aero_snap_triggered  = False
@@ -158,11 +194,12 @@ class FramelessTitleBar(QWidget):
 		
 		self.ori_pos              = None
 		self.title_icon           = QLabel()
+		self.tab_bar              = Title_tabbar()
 		pixmap                    = QPixmap("./src/default_icon.png")
 		pixmap                    = pixmap.scaledToHeight(20)
 		
 		self.title_icon.setPixmap(pixmap)
-		self.title_label     = QLabel("Python Frameless Mainwindow")
+		self.title_label     = QLabel()
 		self.title_label.setObjectName("TitleLabel")
 		self.menubar         = Title_menubar()
 		self.minimize_button = Title_button(w = 20, h = 20, button_type = "minimize")
@@ -173,24 +210,18 @@ class FramelessTitleBar(QWidget):
 		self.maximize_button.clicked.connect(lambda : self.maximize_signal.emit())
 		self.close_button.clicked.connect(   lambda : self.close_signal.emit())
 
-		
-		self.menubar.addMenu ("File")
-		self.menubar.addMenu ("Edit")
-		self.menubar.addMenu ("View")
-		self.menubar.addMenu ("Layer")
-		self.menubar.addMenu ("Text")
-		self.menubar.addMenu ("Select")
-		self.menubar.addMenu ("Window")
-		self.menubar.addMenu ("Help")
-		self.menubar.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding))
-
-		self.main_layout = HBox(5, self.title_icon, self.title_label ,self.menubar, -1, self.minimize_button, self.maximize_button, self.close_button, 5)
-		self.main_layout.setSpacing(5)
-		self.main_layout.setContentsMargins(QMargins(0,0,0,0))
-		self.setLayout(self.main_layout)
+		self.main_Hlayout = HBox(5, self.title_icon, self.title_label ,self.menubar, self.tab_bar, -1, self.minimize_button, self.maximize_button, self.close_button, 5)
+		self.main_Hlayout.setSpacing(5)
+		self.main_Hlayout.setContentsMargins(QMargins(0,0,0,0))
+		self.setLayout(self.main_Hlayout)
 		self.setFixedHeight(25)
 		self.setAttribute(Qt.WA_StyledBackground, True)
 		self.setMouseTracking(True)
+		self.tab_bar.addTab("Python")
+		self.tab_bar.addTab("Python")
+		self.tab_bar.addTab("Python")
+		self.tab_bar.addTab("Python")
+		self.tab_bar.addTab("Python")
 
 
 	def setMouseTracking(self, flag):
@@ -205,9 +236,20 @@ class FramelessTitleBar(QWidget):
 		QWidget.setMouseTracking(self, flag)
 		recursive_set(self)
 
-	def setWindowTitle(self, title):
-		self.title_label.setText(title)
 
+	def showTitle(self, show):
+		self._show_title = show
+		self.setWindowTitle(self._title_text)
+
+	def titleVisible(self):
+		return self._show_title
+
+	def setWindowTitle(self, title):
+		self._title_text = title
+		self.title_label.setText( title if self._show_title else "")
+
+	def windowTitle(self):
+		return self._title_text
 
 
 	def mousePressEvent(self,event):
@@ -288,6 +330,11 @@ class Title_menubar(QMenuBar):
 	def __init__(self):
 		super().__init__()
 
+class Title_tabbar(QTabBar):
+	def __init__(self):
+		super().__init__()
+		self.setTabsClosable(True)
+		# self.setContentsMargins(QMargins(0,0,0,0))
 
 class Aero_snap_indicator(QWidget):
 	def __init__(self, parent = None):
@@ -380,16 +427,6 @@ class Title_button(QPushButton):
 
 
 
-class RoundCornerRect(QPainterPath):
-	def __init__(self, w, h, r1, r2, r3, r4):
-		super().__init__()
-		self.addPolygon(QPolygonF([QPointF(0, r1), QPointF(r1, 0), QPointF(w-r2, 0), QPointF(w, r2), QPointF(w, h-r3), QPointF(w-r3, h), QPointF(r4, h), QPointF(0, h-r4)]))
-		self.addEllipse(QPoint(  r1,   r1), r1, r1)
-		self.addEllipse(QPoint(w-r2,   r2), r2, r2)
-		self.addEllipse(QPoint(w-r3, h-r3), r3, r3)
-		self.addEllipse(QPoint(  r4, h-r4), r4, r4)
-		self.simplified()
-		self.setFillRule(Qt.WindingFill)
 
 class BoxLayout(QBoxLayout):
 	def __init__(self, direction, ui_list):
@@ -417,7 +454,7 @@ class HBox(BoxLayout):
 
 class VBox(BoxLayout):
 	def __init__(self, *ui_list):
-		self.setDirection(QBoxLayout.TopToBottom, ui_list)		
+		super().__init__(QBoxLayout.TopToBottom, ui_list)		
 
 
 

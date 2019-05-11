@@ -5,7 +5,7 @@ QMenuBar{
 
 QMenuBar::item {
 	font: 8pt "Inconsolata";
-	color: #3a3a3a;
+	color: #7a7a7a;
 	padding: 0px 12px 0px 12px;
 	margin:  0px 0px 0px 0px;
 
@@ -36,7 +36,8 @@ FramelessTitleBar{
 }
 
 FramelessTitleBar #TitleLabel {
-	font: 8pt "Inconsolata";
+	font: 9pt "Inconsolata";
+	font-weight: bold;
 	color: #7a7a7a;
 }
 
@@ -65,4 +66,28 @@ Title_button[button_type="maximize"]{
 
 Title_button[button_type="close"]{
 	qproperty-svg_icon: "./src/icon/close_win.svg"
+}
+
+QTabBar {
+	background: #ffffff;
+	font: 8pt "Inconsolata";
+	color: #7a7a7a;
+	border: none;
+}
+
+QTabBar::tab {
+	background: #ffffff;
+	min-width: 20px;
+	width: 100px;
+	padding: 0px 3px 0px 0px;
+	margin:  0px 0px 0px 0px;
+	height: 25px;
+
+}
+
+QTabBar::tab:selected {
+	background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E1E1E1, stop: 0.4 #DDDDDD, stop: 0.5 #D8D8D8, stop: 1.0 #D3D3D3);
+
+
+
 }
