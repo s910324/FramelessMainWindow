@@ -43,7 +43,7 @@ FramelessTitleBar #TitleLabel {
 
 
 Title_button[hovered=true]{
-	background-color: rgba(200, 200, 200, 30%);
+	background-color: rgba(200, 200, 200, 50%);
 	border-style: solid 0px; 
 	border-radius: 8px; margin: 2px;
 	qproperty-svg_icon_color: #009900;
@@ -68,6 +68,10 @@ Title_button[button_type="close"]{
 	qproperty-svg_icon: "./src/icon/close_win.svg"
 }
 
+Title_button[button_type="tab_close"]{
+	qproperty-svg_icon: "./src/icon/close_win.svg"
+}
+
 QTabBar {
 	background: #ffffff;
 	font: 8pt "Inconsolata";
@@ -79,9 +83,11 @@ QTabBar::tab {
 	background: #ffffff;
 	min-width: 20px;
 	width: 100px;
-	padding: 0px 3px 0px 0px;
+	padding: 0px 0px 0px 0px;
 	margin:  0px 0px 0px 0px;
 	height: 25px;
+	border-left: 1px solid #f3f3f3;
+	
 
 }
 
@@ -90,18 +96,4 @@ QTabBar::tab:selected {
 
 
 
-}
-
-QTabBar::close-button {
-	width: 15px;
-	height: 15px;
-	border-radius: 8px;
-	background: rgba(200, 200, 200, 0%);
-}
-
-QTabBar::close-button:hover{
-	width: 15px;
-	height: 15px;
-	border-radius: 8px;
-	background: rgba(200, 200, 200, 30%);
 }

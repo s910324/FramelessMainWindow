@@ -222,7 +222,7 @@ class FramelessTitleBar(QWidget):
 		self.tab_bar.addTab("Python")
 		self.tab_bar.addTab("Python")
 		self.tab_bar.addTab("Python")
-
+		
 
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
@@ -333,8 +333,26 @@ class Title_menubar(QMenuBar):
 class Title_tabbar(QTabBar):
 	def __init__(self):
 		super().__init__()
-		self.setTabsClosable(True)
-		# self.setContentsMargins(QMargins(0,0,0,0))
+		# self.setTabsClosable(True)
+		self.setMovable(True)
+		self.tabCloseRequested.connect(lambda x: print(x))
+		# self.currentChanged.connect(self.tab_close_request_update)
+		# self.tabMoved.connect(self.tab_close_request_update)
+
+	def addTab(self, *args):
+		self.insertTab(self.count(), *args)
+
+	def insertTab(self, *args):
+		tab_index    = QTabBar.insertTab(self, *args)
+		close_button = Title_button(button_type="tab_close")
+		self.setTabButton(tab_index	, QTabBar.RightSide, close_button)
+		self.tab_close_request_update()
+
+	def tab_close_request_update(self):
+		for index in range(self.count()):
+			close_button =  self.tabButton(index,  QTabBar.RightSide)
+			if close_button:
+				close_button.clicked.connect(lambda : self.tabCloseRequested.emit(index))##################################
 
 class Aero_snap_indicator(QWidget):
 	def __init__(self, parent = None):
