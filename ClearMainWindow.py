@@ -4,7 +4,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtSvg import *
 import pickle
- 
+ class FramelessDialog
 class FramelessMainWindow(QWidget):
 	def __init__(self, title = "Python", show_title = False):
 		QWidget.__init__(self)
@@ -217,11 +217,11 @@ class FramelessTitleBar(QWidget):
 		self.setFixedHeight(25)
 		self.setAttribute(Qt.WA_StyledBackground, True)
 		self.setMouseTracking(True)
-		self.tab_bar.addTab("Python")
-		self.tab_bar.addTab("Python")
-		self.tab_bar.addTab("Python")
-		self.tab_bar.addTab("Python")
-		self.tab_bar.addTab("Python")
+		self.tab_bar.addTab("Python 0")
+		self.tab_bar.addTab("Python 1")
+		self.tab_bar.addTab("Python 2")
+		self.tab_bar.addTab("Python 3")
+		self.tab_bar.addTab("Python 4")
 		
 
 	def setMouseTracking(self, flag):
@@ -333,11 +333,10 @@ class Title_menubar(QMenuBar):
 class Title_tabbar(QTabBar):
 	def __init__(self):
 		super().__init__()
-		# self.setTabsClosable(True)
+		self.setTabsClosable(True)
 		self.setMovable(True)
 		self.tabCloseRequested.connect(lambda x: print(x))
-		# self.currentChanged.connect(self.tab_close_request_update)
-		# self.tabMoved.connect(self.tab_close_request_update)
+
 
 	def addTab(self, *args):
 		self.insertTab(self.count(), *args)
@@ -346,13 +345,8 @@ class Title_tabbar(QTabBar):
 		tab_index    = QTabBar.insertTab(self, *args)
 		close_button = Title_button(button_type="tab_close")
 		self.setTabButton(tab_index	, QTabBar.RightSide, close_button)
-		self.tab_close_request_update()
+		close_button.clicked.connect(lambda: self.tabCloseRequested.emit(self.tabAt(self.mapFromGlobal(QCursor.pos()))))
 
-	def tab_close_request_update(self):
-		for index in range(self.count()):
-			close_button =  self.tabButton(index,  QTabBar.RightSide)
-			if close_button:
-				close_button.clicked.connect(lambda : self.tabCloseRequested.emit(index))##################################
 
 class Aero_snap_indicator(QWidget):
 	def __init__(self, parent = None):
