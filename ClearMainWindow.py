@@ -4,7 +4,179 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtSvg import *
 import pickle
- class FramelessDialog
+
+
+class FramelessWidget(QWidget):
+	def __init__(self, title = "Python", show_title = True):
+		QWidget.__init__(self)
+		self.init_layout()
+		self.init_frameless()
+		self.load_stylesheet()
+
+	def init_layout(self):
+		self.main_layout    = QVBoxLayout()
+		self.main_window    = QMainWindow()
+		self.headerbar = FramelessTitleBar()
+		self.header_menubar = self.headerbar.menubar
+
+		self.main_layout.setSpacing(0)
+		self.main_layout.addWidget(self.headerbar)
+		self.main_layout.addWidget(self.main_window)
+		self.main_window.setCentralWidget(QMdiArea())
+		self.main_window.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
+		self.setLayout(self.main_layout)
+
+		self.headerbar.minimize_signal.connect(self.showMinimized)
+		self.headerbar.maximize_signal.connect(lambda : self.showNormal() if self.isMaximized() else self.showMaximized())
+		self.headerbar.close_signal.connect(self.close)
+		self.headerbar.move_signal.connect(lambda pos : None if self.isMaximized() else self.move(pos) )
+		self.headerbar.aero_resize_signal.connect(self.a)
+
+		self.setWindowIcon(QIcon( "./src/default_icon.png"))
+		self.setWindowTitle("Python")
+		self.showTitle(False)
+		self.init_menu()
+
+	def init_menu(self):
+		exitAction = QAction( '&Exit', self)
+		exitAction.triggered.connect(self.close)
+				
+		m = self.header_menubar.addMenu ("File")
+		m.addAction(exitAction)
+		self.header_menubar.addMenu ("Edit")
+		self.header_menubar.addMenu ("View")
+		self.header_menubar.addMenu ("Layer")
+		self.header_menubar.addMenu ("Text")
+		self.header_menubar.addMenu ("Select")
+		self.header_menubar.addMenu ("Window")
+		self.header_menubar.addMenu ("Help")
+
+		
+
+
+	def setWindowTitle(self, title):
+		QWidget.setWindowTitle(self,title)
+		self.headerbar.setWindowTitle(title)
+
+	def showTitle(self, show):
+		self.headerbar.showTitle(show)
+
+
+	def titleVisible(self):
+		return self.headerbar.titleVisible()
+	
+	def a(self, x, y, w, h):
+		screen = QDesktopWidget().screenGeometry() 
+		self.move(x, y)
+		self.resize(w, h)
+
+
+
+	def init_frameless(self):
+		self.edge_sense_dist  = 3
+		self.resize_activated = False
+		self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
+		self.setAttribute(Qt.WA_TranslucentBackground, True)
+		self.setMouseTracking(True)
+
+
+	def showMaximized(self):
+		QWidget.show(self)
+		QWidget.showMaximized(self)
+
+	def resizeEvent(self, event):
+		self.eliminate_border(self.isMaximized())
+
+	def eliminate_border(self, state):
+
+		border_width = (not state) * (self.edge_sense_dist)
+		self.main_layout.setContentsMargins(QMargins(border_width, border_width, border_width, border_width))
+		self.setCursor(Qt.ArrowCursor)
+
+	def mouseMoveEvent(self, event):
+		if not self.isMaximized():
+			event_to_left_border   = (event.globalPos()-self.frameGeometry().topLeft()).x()
+			event_to_right_border  = (event.globalPos()-self.frameGeometry().bottomRight()).x()
+			event_to_top_border    = (event.globalPos()-self.frameGeometry().topLeft()).y()
+			event_to_bottom_border = (event.globalPos()-self.frameGeometry().bottomRight()).y()
+
+			at_left_border         = abs(event_to_left_border)    < self.edge_sense_dist
+			at_right_border        = abs(event_to_right_border)   < self.edge_sense_dist
+			at_top_border          = abs(event_to_top_border)     < self.edge_sense_dist
+			at_bottom_border       = abs(event_to_bottom_border)  < self.edge_sense_dist
+
+			sense_array            = [      at_left_border,       at_right_border,       at_top_border,       at_bottom_border]
+			dist_array             = [event_to_left_border, event_to_right_border, event_to_top_border, event_to_bottom_border]
+
+			# print (sense_array)
+			if not self.resize_activated == True:
+				self.previous_sense = sense_array
+				self.previous_dist  = dist_array
+				if   sense_array in ([1, 0, 1, 0], [0, 1, 0, 1]):
+					self.setCursor(Qt.SizeFDiagCursor)
+				elif sense_array in ([1, 1, 0, 0], [0, 0, 1, 1]):
+					self.setCursor(Qt.SizeBDiagCursor)
+				elif sense_array in ([1, 0, 0, 0], [0, 1, 0, 0]):
+					self.setCursor(Qt.SizeHorCursor)
+				elif sense_array in ([0, 0, 1, 0], [0, 0, 0, 1]):
+					self.setCursor(Qt.SizeVerCursor)
+				else:
+					self.setCursor(Qt.ArrowCursor)
+
+			if self.resize_activated == True:
+				n = [dist * sense for sense, dist in zip(self.previous_sense, self.previous_dist)]
+				m = [dist * sense for sense, dist in zip(self.previous_sense,         dist_array)]
+				delta_left, delta_right, delta_top, delta_bottom = [dist - predist  for dist, predist in zip(m, n)]
+				if (self.width() - delta_left >= self.minimumWidth() and self.height()- delta_top >= self.minimumHeight()):
+					self.setGeometry(self.x()+delta_left, self.y()+delta_top, self.width()-delta_left+delta_right, self.height()-delta_top+delta_bottom)
+					self.update()
+
+
+	def mousePressEvent(self,event):
+		if event.button() == Qt.LeftButton and sum(self.previous_sense)>0:
+			self.resize_activated = True
+
+			
+	def mouseReleaseEvent(self,event):
+		if event.button() == Qt.LeftButton:
+			self.resize_activated = False
+
+	def paintEvent(self, event):
+		self.backgroundColor = QColor(0, 0, 0, 1);#hex2QColor("efefef")
+		self.foregroundColor = QColor(0, 0, 0, 1);#hex2QColor("333333")
+		self.borderRadius = 5    	
+		# get current window size
+		s = self.size()
+		qp = QPainter()
+		qp.begin(self)
+		qp.setRenderHint(QPainter.Antialiasing, True)
+		qp.setPen(self.foregroundColor)
+		qp.setBrush(self.backgroundColor)
+		qp.drawRoundedRect(0, 0, s.width(), s.height(),
+						   self.borderRadius, self.borderRadius)
+		qp.end()
+
+	def setMouseTracking(self, flag):
+		def recursive_set(parent):
+			for child in parent.findChildren(QObject):
+				try:
+
+					child.setMouseTracking(flag)
+				except:
+					pass
+				recursive_set(child)
+		QWidget.setMouseTracking(self, flag)
+		recursive_set(self)
+
+	def load_stylesheet(self):
+		f = QFile("./style.qss")
+		if not f.exists():
+			return ""
+		else:
+			f.open(QFile.ReadOnly | QFile.Text)
+			ts = QTextStream(f)
+			stylesheet = ts.readAll()
+			self.setStyleSheet(stylesheet)
 class FramelessMainWindow(QWidget):
 	def __init__(self, title = "Python", show_title = False):
 		QWidget.__init__(self)
@@ -31,6 +203,7 @@ class FramelessMainWindow(QWidget):
 		self.headerbar.move_signal.connect(lambda pos : None if self.isMaximized() else self.move(pos) )
 		self.headerbar.aero_resize_signal.connect(self.a)
 
+		self.setWindowIcon(QIcon( "./src/default_icon.png"))
 		self.setWindowTitle("Python")
 		self.showTitle(False)
 		self.init_menu()
